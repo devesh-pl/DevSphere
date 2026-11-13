@@ -1,0 +1,171 @@
+services:
+
+  auth-service:
+
+    image: devsphere/auth-service:0.1.0
+
+    build:
+      context: ../..
+      dockerfile: services/auth-service/Dockerfile
+
+    container_name: devsphere-auth
+
+    restart: unless-stopped
+
+    environment:
+      SERVICE_NAME: auth-service
+      APP_VERSION: "0.1.0"
+      LOG_LEVEL: INFO
+      DATABASE_REQUIRED: "true"
+      AUTH_JWT_SECRET: "${AUTH_JWT_SECRET:?Required}"
+
+      DATABASE_URL: "postgresql+psycopg://auth_service:${AUTH_DB_PASSWORD:?Required}@postgres:5432/auth_db"
+
+    ports:
+      - "127.0.0.1:8001:8000"
+
+    mem_limit: 384m
+    cpus: 0.5
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - devsphere-internal
+  catalog-service:
+    image: devsphere/catalog-service:0.1.0
+
+    build:
+      context: ../..
+      dockerfile: services/catalog-service/Dockerfile
+
+    container_name: devsphere-catalog
+    restart: unless-stopped
+
+    environment:
+      DEVSPHERE_INTERNAL_TOKEN: "${DEVSPHERE_INTERNAL_TOKEN:?Required}"
+      SERVICE_NAME: catalog-service
+      APP_VERSION: "0.1.0"
+      LOG_LEVEL: INFO
+      AUTH_SERVICE_URL: http://auth-service:8000
+      DATABASE_URL: "postgresql+psycopg://catalog_service:${CATALOG_DB_PASSWORD:?Required}@postgres:5432/catalog_db"
+
+    ports:
+      - "127.0.0.1:8002:8000"
+
+    mem_limit: 384m
+    cpus: 0.5
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+
+    networks:
+      - devsphere-internal
+
+  template-service:
+    image: devsphere/template-service:0.1.0
+
+    build:
+      context: ../..
+      dockerfile: services/template-service/Dockerfile
+
+    container_name: devsphere-template
+    restart: unless-stopped
+
+    environment:
+      SERVICE_NAME: template-service
+      APP_VERSION: "0.1.0"
+      LOG_LEVEL: INFO
+      AUTH_SERVICE_URL: http://auth-service:8000
+      TEMPLATE_ROOT: /app/templates/starters
+      DEVSPHERE_INTERNAL_TOKEN: "${DEVSPHERE_INTERNAL_TOKEN:?Required}"
+
+    ports:
+      - "127.0.0.1:8003:8000"
+
+    mem_limit: 256m
+    cpus: 0.5
+
+    depends_on:
+      auth-service:
+        condition: service_healthy
+
+    networks:
+      - devsphere-internal
+
+  orchestrator-service:
+    image: devsphere/orchestrator-service:0.1.0
+    build:
+      context: ../..
+      dockerfile: services/orchestrator-service/Dockerfile
+    container_name: devsphere-orchestrator
+    restart: unless-stopped
+    environment:
+      ARTIFACT_DIR: "/app/artifacts"
+      CATALOG_SERVICE_URL: "http://catalog-service:8000"
+      TEMPLATE_SERVICE_URL: "http://template-service:8000"
+      SERVICE_NAME: orchestrator-service
+      LOG_LEVEL: INFO
+      DATABASE_URL: "postgresql+psycopg://orchestrator_service:${ORCHESTRATOR_DB_PASSWORD:?Required}@postgres:5432/orchestrator_db"
+      AUTH_SERVICE_URL: http://auth-service:8000
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "${RABBITMQ_DEFAULT_USER:?Required}"
+      RABBITMQ_PASSWORD: "${RABBITMQ_DEFAULT_PASS:?Required}"
+    ports:
+      - "127.0.0.1:8004:8000"
+    mem_limit: 384m
+    cpus: 0.5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+    volumes:
+      - devsphere-generated-artifacts:/app/artifacts
+    networks:
+      - devsphere-internal
+
+  orchestrator-worker:
+    image: devsphere/orchestrator-service:0.1.0
+    build:
+      context: ../..
+      dockerfile: services/orchestrator-service/Dockerfile
+    container_name: devsphere-orchestrator-worker
+    restart: unless-stopped
+    command: ["python", "-m", "app.worker"]
+    healthcheck:
+      disable: true
+    environment:
+      DEVSPHERE_INTERNAL_TOKEN: "${DEVSPHERE_INTERNAL_TOKEN:?Required}"
+      ARTIFACT_DIR: "/app/artifacts"
+      CATALOG_SERVICE_URL: "http://catalog-service:8000"
+      TEMPLATE_SERVICE_URL: "http://template-service:8000"
+      SERVICE_NAME: orchestrator-worker
+      LOG_LEVEL: INFO
+      DATABASE_URL: "postgresql+psycopg://orchestrator_service:${ORCHESTRATOR_DB_PASSWORD:?Required}@postgres:5432/orchestrator_db"
+      AUTH_SERVICE_URL: http://auth-service:8000
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "${RABBITMQ_DEFAULT_USER:?Required}"
+      RABBITMQ_PASSWORD: "${RABBITMQ_DEFAULT_PASS:?Required}"
+    mem_limit: 256m
+    cpus: 0.5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - devsphere-generated-artifacts:/app/artifacts
+    networks:
+      - devsphere-internal
+
+volumes:
+  devsphere-generated-artifacts:

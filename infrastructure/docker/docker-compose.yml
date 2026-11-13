@@ -1,0 +1,93 @@
+name: devsphere
+
+services:
+  postgres:
+    image: postgres:18.7-alpine
+    container_name: devsphere-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Required}
+      POSTGRES_DB: ${POSTGRES_DB:-postgres}
+
+      AUTH_DB_PASSWORD: ${AUTH_DB_PASSWORD:?Required}
+      CATALOG_DB_PASSWORD: ${CATALOG_DB_PASSWORD:?Required}
+      ORCHESTRATOR_DB_PASSWORD: ${ORCHESTRATOR_DB_PASSWORD:?Required}
+      BUILD_DB_PASSWORD: ${BUILD_DB_PASSWORD:?Required}
+      DEPLOYMENT_DB_PASSWORD: ${DEPLOYMENT_DB_PASSWORD:?Required}
+      CONFIGURATION_DB_PASSWORD: ${CONFIGURATION_DB_PASSWORD:?Required}
+
+    command:
+      - postgres
+      - -c
+      - max_connections=50
+      - -c
+      - shared_buffers=64MB
+
+    ports:
+      - "127.0.0.1:5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+
+    mem_limit: 768m
+    cpus: 1.0
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+
+    networks:
+      - devsphere-internal
+
+  rabbitmq:
+    image: rabbitmq:4.4.0-management
+    container_name: devsphere-rabbitmq
+    restart: unless-stopped
+
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_DEFAULT_USER:?Required}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_DEFAULT_PASS:?Required}
+
+    ports:
+      - "127.0.0.1:5672:5672"
+      - "127.0.0.1:15672:15672"
+
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+    mem_limit: 768m
+    cpus: 1.0
+
+    healthcheck:
+      test:
+        - CMD
+        - rabbitmq-diagnostics
+        - -q
+        - ping
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+
+    networks:
+      - devsphere-internal
+
+volumes:
+  postgres_data:
+    name: devsphere-postgres-data
+
+  rabbitmq_data:
+    name: devsphere-rabbitmq-data
+
+networks:
+  devsphere-internal:
+    name: devsphere-internal
+    driver: bridge
