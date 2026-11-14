@@ -16,6 +16,7 @@ from app.core.auth import get_current_user
 from app.core.broker import publish_operation
 from app.database.session import get_db
 from app.models.operation import Operation
+from app.models.outbox import OperationOutbox
 from app.schemas.operation import (
     OperationCreate,
     OperationResponse,
@@ -103,46 +104,22 @@ def create_operation(
         status="pending",
     )
 
+    # Flush assigns the operation ID without committing.
     db.add(operation)
-    db.commit()
-    db.refresh(operation)
+    db.flush()
 
-    try:
-        publish_operation(operation.id)
-
-    except Exception:
-        logger.exception(
-            "operation_publish_failed",
-            extra={
-                "service": "orchestrator-service",
-            },
-        )
-
-        # A network failure may occur after RabbitMQ accepts
-        # the message. Preserve the operation for recovery.
-        db.refresh(operation)
-
-        if operation.status == "pending":
-            operation.error_message = (
-                "Queue publication could not be confirmed"
-            )
-            db.commit()
-
-        raise HTTPException(
-            status_code=503,
-            detail="Unable to confirm operation publication",
-        )
-
-    # The worker may claim or complete the operation immediately.
-    # Use a conditional update to avoid overwriting its newer status.
-    db.execute(
-        update(Operation)
-        .where(
-            Operation.id == operation.id,
-            Operation.status == "pending",
-        )
-        .values(status="queued")
+    outbox_event = OperationOutbox(
+        operation_id=operation.id,
+        event_type="operation.created",
+        payload=json.dumps({
+            "operation_id": operation.id,
+        }),
+        status="pending",
     )
+
+    db.add(outbox_event)
+
+    # Both records are committed atomically.
     db.commit()
     db.refresh(operation)
 

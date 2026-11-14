@@ -167,5 +167,40 @@ services:
     networks:
       - devsphere-internal
 
+
+  orchestrator-publisher:
+    image: devsphere/orchestrator-service:0.1.0
+    build:
+      context: ../..
+      dockerfile: services/orchestrator-service/Dockerfile
+    container_name: devsphere-orchestrator-publisher
+    restart: unless-stopped
+    command: ["python", "-m", "app.outbox_publisher"]
+    healthcheck:
+      disable: true
+    environment:
+      DEVSPHERE_INTERNAL_TOKEN: "${DEVSPHERE_INTERNAL_TOKEN:?Required}"
+      ARTIFACT_DIR: "/app/artifacts"
+      CATALOG_SERVICE_URL: "http://catalog-service:8000"
+      TEMPLATE_SERVICE_URL: "http://template-service:8000"
+      SERVICE_NAME: orchestrator-worker
+      LOG_LEVEL: INFO
+      DATABASE_URL: "postgresql+psycopg://orchestrator_service:${ORCHESTRATOR_DB_PASSWORD:?Required}@postgres:5432/orchestrator_db"
+      AUTH_SERVICE_URL: http://auth-service:8000
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: "${RABBITMQ_DEFAULT_USER:?Required}"
+      RABBITMQ_PASSWORD: "${RABBITMQ_DEFAULT_PASS:?Required}"
+    mem_limit: 256m
+    cpus: 0.5
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    volumes:
+      - devsphere-generated-artifacts:/app/artifacts
+    networks:
+      - devsphere-internal
 volumes:
   devsphere-generated-artifacts:
