@@ -62,3 +62,4 @@ crash.log
 *.key
 *.crt
 secrets/infrastructure/docker/kubeconfig/*.yaml
+.env.build.local
