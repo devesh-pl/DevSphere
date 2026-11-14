@@ -61,4 +61,4 @@ crash.log
 *.pem
 *.key
 *.crt
-secrets/
+secrets/infrastructure/docker/kubeconfig/*.yaml

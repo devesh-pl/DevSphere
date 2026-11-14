@@ -1,0 +1,33 @@
+services:
+  deployment-service:
+    image: devsphere/deployment-service:0.1.0
+
+    build:
+      context: ../..
+      dockerfile: services/deployment-service/Dockerfile
+
+    container_name: devsphere-deployment
+    restart: unless-stopped
+
+    environment:
+      DATABASE_URL: "postgresql+psycopg://deployment_service:${DEPLOYMENT_DB_PASSWORD:?Required}@postgres:5432/deployment_db"
+      AUTH_SERVICE_URL: http://auth-service:8000
+      KUBECONFIG: /app/kubeconfig/config
+
+    ports:
+      - "127.0.0.1:8005:8000"
+
+    volumes:
+      - ./kubeconfig/devsphere.yaml:/app/kubeconfig/config:ro
+
+    mem_limit: 384m
+    cpus: 0.5
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_healthy
+
+    networks:
+      - devsphere-internal
