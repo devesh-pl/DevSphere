@@ -1,4 +1,4 @@
-"""RabbitMQ worker with leases, heartbeats and fenced completion."""
+"""DevSphere worker with heartbeats, leases and bounded retries."""
 
 import json
 import logging
@@ -7,7 +7,7 @@ import threading
 from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from sqlalchemy import update
+from sqlalchemy import select, update
 
 from app.core.broker import declare_queue, open_connection
 from app.core.config import settings
@@ -19,6 +19,7 @@ from app.core.recovery_config import (
 )
 from app.database.session import get_db
 from app.models.operation import Operation
+from app.models.outbox import OperationOutbox
 
 
 logging.basicConfig(level=settings.log_level)
@@ -29,12 +30,16 @@ def utc_now():
     return datetime.now(timezone.utc)
 
 
-def renew_lease(operation_id, attempt, stop_event):
-    """Refresh lease using an independent database session."""
+def new_session():
+    generator = get_db()
+    return generator, next(generator)
+
+
+def heartbeat_loop(operation_id, attempt, stop_event):
+    """Extend the lease only while this attempt still owns it."""
 
     while not stop_event.wait(WORKER_HEARTBEAT_SECONDS):
-        generator = get_db()
-        db = next(generator)
+        generator, db = new_session()
 
         try:
             now = utc_now()
@@ -48,12 +53,10 @@ def renew_lease(operation_id, attempt, stop_event):
                     Operation.lease_expires_at > now,
                 )
                 .values(
-                    lease_expires_at=(
-                        now + timedelta(
-                            seconds=OPERATION_LEASE_SECONDS
-                        )
-                    ),
                     last_heartbeat_at=now,
+                    lease_expires_at=now + timedelta(
+                        seconds=OPERATION_LEASE_SECONDS
+                    ),
                 )
                 .execution_options(synchronize_session=False)
             )
@@ -62,16 +65,14 @@ def renew_lease(operation_id, attempt, stop_event):
 
             if result.rowcount != 1:
                 logger.warning(
-                    "Lease no longer owned: %s",
-                    operation_id,
+                    "Heartbeat ownership lost: %s", operation_id
                 )
                 return
 
         except Exception:
             db.rollback()
             logger.exception(
-                "Heartbeat failed: %s",
-                operation_id,
+                "Heartbeat database error: %s", operation_id
             )
 
         finally:
@@ -79,11 +80,9 @@ def renew_lease(operation_id, attempt, stop_event):
 
 
 def process_operation(operation_id):
-    """Claim and process one operation with attempt fencing."""
+    """Claim an operation and safely finalize its result."""
 
-    generator = get_db()
-    db = next(generator)
-
+    generator, db = new_session()
     stop_event = threading.Event()
     heartbeat = None
 
@@ -100,12 +99,10 @@ def process_operation(operation_id):
             .values(
                 status="running",
                 attempt_count=Operation.attempt_count + 1,
-                lease_expires_at=(
-                    now + timedelta(
-                        seconds=OPERATION_LEASE_SECONDS
-                    )
-                ),
                 last_heartbeat_at=now,
+                lease_expires_at=now + timedelta(
+                    seconds=OPERATION_LEASE_SECONDS
+                ),
                 error_message=None,
             )
             .execution_options(synchronize_session=False)
@@ -115,8 +112,7 @@ def process_operation(operation_id):
 
         if claim.rowcount != 1:
             logger.info(
-                "Operation not claimable: %s",
-                operation_id,
+                "Operation not claimable: %s", operation_id
             )
             return
 
@@ -128,13 +124,11 @@ def process_operation(operation_id):
         request_payload = operation.request_payload
 
         logger.info(
-            "Claimed operation %s, attempt %s",
-            operation_id,
-            attempt,
+            "Claimed %s attempt %s", operation_id, attempt
         )
 
         heartbeat = threading.Thread(
-            target=renew_lease,
+            target=heartbeat_loop,
             args=(operation_id, attempt, stop_event),
             daemon=True,
         )
@@ -162,8 +156,7 @@ def process_operation(operation_id):
 
         except Exception:
             logger.exception(
-                "Operation execution failed: %s",
-                operation_id,
+                "Operation execution error: %s", operation_id
             )
             outcome = "failed"
 
@@ -171,23 +164,44 @@ def process_operation(operation_id):
             stop_event.set()
             heartbeat.join(timeout=5)
 
-        # Completion is conditional on the original claim.
-        # A recovered or expired attempt cannot overwrite
-        # a newer attempt's database state.
+        # Lock outbox first, consistent with recovery controller.
+        event = db.scalar(
+            select(OperationOutbox)
+            .where(
+                OperationOutbox.operation_id == operation_id
+            )
+            .with_for_update()
+        )
+
+        if event is None:
+            db.rollback()
+            raise RuntimeError("Outbox event missing")
+
         now = utc_now()
 
-        values = {
-            "status": outcome,
-            "lease_expires_at": None,
-        }
-
         if outcome == "completed":
-            values["result"] = json.dumps(result_data)
-            values["error_message"] = None
+            values = {
+                "status": "completed",
+                "result": json.dumps(result_data),
+                "error_message": None,
+                "lease_expires_at": None,
+            }
+
+        elif attempt < MAX_OPERATION_ATTEMPTS:
+            delay = min(2 ** attempt, 30)
+
+            values = {
+                "status": "queued",
+                "error_message": "Retry scheduled",
+                "lease_expires_at": None,
+            }
+
         else:
-            values["error_message"] = (
-                "Operation execution failed"
-            )
+            values = {
+                "status": "failed",
+                "error_message": "Maximum attempts exceeded",
+                "lease_expires_at": None,
+            }
 
         finalization = db.execute(
             update(Operation)
@@ -201,19 +215,41 @@ def process_operation(operation_id):
             .execution_options(synchronize_session=False)
         )
 
+        if finalization.rowcount != 1:
+            db.rollback()
+            logger.warning(
+                "Stale attempt discarded: %s", operation_id
+            )
+            return
+
+        if outcome == "failed" and attempt < MAX_OPERATION_ATTEMPTS:
+            event.status = "pending"
+            event.published_at = None
+            event.next_attempt_at = now + timedelta(
+                seconds=delay
+            )
+
+            logger.warning(
+                "Retry scheduled: %s, attempt=%s, delay=%ss",
+                operation_id,
+                attempt,
+                delay,
+            )
+
         db.commit()
 
-        if finalization.rowcount == 1:
-            logger.info(
-                "Operation %s finished as %s",
-                operation_id,
-                outcome,
-            )
-        else:
-            logger.warning(
-                "Stale or expired attempt ignored: %s",
-                operation_id,
-            )
+        logger.info(
+            "Operation %s status=%s",
+            operation_id,
+            values["status"],
+        )
+
+    except Exception:
+        db.rollback()
+        logger.exception(
+            "Unexpected worker failure: %s", operation_id
+        )
+        raise
 
     finally:
         stop_event.set()
@@ -225,7 +261,7 @@ def process_operation(operation_id):
 
 
 def handle_message(channel, method, properties, body):
-    """Handle a RabbitMQ delivery safely."""
+    """Consume one operation message."""
 
     try:
         message = json.loads(body)
@@ -242,10 +278,7 @@ def handle_message(channel, method, properties, body):
         process_operation(operation_id)
 
     except Exception:
-        logger.exception(
-            "Unexpected operation processing error"
-        )
-
+        logger.exception("Message processing failed")
         channel.basic_nack(
             delivery_tag=method.delivery_tag,
             requeue=True,
@@ -262,7 +295,6 @@ def main():
 
     try:
         channel = connection.channel()
-
         declare_queue(channel)
         channel.basic_qos(prefetch_count=1)
 
@@ -272,7 +304,7 @@ def main():
             auto_ack=False,
         )
 
-        logger.info("Heartbeat-enabled worker started")
+        logger.info("Reliable Orchestrator Worker started")
         channel.start_consuming()
 
     finally:
