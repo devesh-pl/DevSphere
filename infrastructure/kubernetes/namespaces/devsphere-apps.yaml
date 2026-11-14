@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: devsphere-apps
+  labels:
+    app.kubernetes.io/part-of: devsphere
+    devsphere.io/purpose: developer-workloads
