@@ -1,117 +1,30 @@
-"""DevSphere Build Service: PostgreSQL-backed local prototype."""
+"""DevSphere Build API: durable job submission and tracking."""
 
-import importlib.util
 import json
-import logging
 import re
-import threading
-
-from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from uuid import UUID, uuid4
 
-from dotenv import load_dotenv
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
-from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
-import os
-
-
-ROOT = Path(__file__).resolve().parents[3]
-load_dotenv(ROOT / ".env.build.local")
-
-DATABASE_URL = os.environ["BUILD_DATABASE_URL"]
-
-engine = create_engine(
-    DATABASE_URL,
-    pool_pre_ping=True,
-    pool_size=3,
-    max_overflow=2,
+from app.common import (
+    AUTH,
+    ORCH,
+    SessionLocal,
+    cipher,
+    get_job,
+    row_to_dict,
+    runner,
 )
 
-SessionLocal = sessionmaker(bind=engine)
 
-runner_path = ROOT / "scripts/build-and-deploy.py"
-spec = importlib.util.spec_from_file_location(
-    "devsphere_build_runner", runner_path
-)
-runner = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(runner)
-
-AUTH = "http://127.0.0.1:8001"
-ORCH = "http://127.0.0.1:8004"
-DEPLOY = "http://127.0.0.1:8005"
-
-app = FastAPI(title="DevSphere Build Service", version="0.2.0")
-logger = logging.getLogger("devsphere.build")
-
-executor = ThreadPoolExecutor(max_workers=1)
-lock = threading.Lock()
-active_jobs = set()
+app = FastAPI(title="DevSphere Build Service", version="0.3.0")
 
 
 class BuildCreate(BaseModel):
     operation_id: UUID
-
-
-def utc_now():
-    return datetime.now(timezone.utc)
-
-
-def row_to_dict(row):
-    if row is None:
-        return None
-
-    item = dict(row)
-
-    if "error_message" in item:
-        item["error"] = item["error_message"]
-
-    for key in ("created_at", "updated_at", "lease_expires_at"):
-        if item.get(key) is not None:
-            item[key] = item[key].isoformat()
-
-    return item
-
-
-def get_record(job_id):
-    with SessionLocal() as db:
-        row = db.execute(
-            text("SELECT * FROM build_jobs WHERE id=:id"),
-            {"id": job_id},
-        ).mappings().first()
-
-        return row_to_dict(row)
-
-
-def update_job(job_id, status, **fields):
-    allowed = {
-        "image", "deployment_id", "kubernetes_name",
-        "namespace", "error_message", "lease_expires_at",
-        "last_heartbeat_at",
-    }
-
-    if not set(fields).issubset(allowed):
-        raise ValueError("Unsupported update field")
-
-    values = {"id": job_id, "status": status, **fields}
-
-    assignments = ["status=:status", "updated_at=NOW()"]
-    assignments.extend(f"{key}=:{key}" for key in fields)
-
-    with SessionLocal.begin() as db:
-        db.execute(
-            text(
-                "UPDATE build_jobs SET "
-                + ", ".join(assignments)
-                + " WHERE id=:id"
-            ),
-            values,
-        )
 
 
 def authenticate(authorization):
@@ -120,8 +33,11 @@ def authenticate(authorization):
 
     token = authorization.removeprefix("Bearer ").strip()
 
+    if not token:
+        raise HTTPException(401, "Authentication required")
+
     try:
-        _, user = runner.api(
+        status, user = runner.api(
             "GET",
             AUTH + "/auth/me",
             token=token,
@@ -129,121 +45,29 @@ def authenticate(authorization):
     except Exception:
         raise HTTPException(401, "Invalid credentials")
 
-    if not user.get("id") or user.get("role") not in (
-        "developer", "admin"
-    ):
+    if status != 200 or not user.get("id"):
+        raise HTTPException(401, "Invalid credentials")
+
+    if user.get("role") not in ("developer", "admin"):
         raise HTTPException(403, "Developer access required")
 
     return token, user
 
 
-def run_build(job_id, operation_id, slug, token):
-    with lock:
-        if job_id in active_jobs:
-            return
-        active_jobs.add(job_id)
+def owned_job(job_id, user_id):
+    with SessionLocal() as db:
+        row = db.execute(
+            text("""
+                SELECT * FROM build_jobs
+                WHERE id=:id AND owner_id=:owner
+            """),
+            {"id": job_id, "owner": user_id},
+        ).mappings().first()
 
-    try:
-        with SessionLocal.begin() as db:
-            claimed = db.execute(
-                text("""
-                    UPDATE build_jobs
-                    SET status='building',
-                        attempt_count=attempt_count+1,
-                        error_message=NULL,
-                        updated_at=NOW()
-                    WHERE id=:id
-                      AND status='queued'
-                      AND attempt_count < max_attempts
-                    RETURNING id
-                """),
-                {"id": job_id},
-            ).first()
+    if not row:
+        raise HTTPException(404, "Build not found")
 
-        if not claimed:
-            return
-
-        _, archive = runner.api(
-            "GET",
-            f"{ORCH}/operations/{operation_id}/download",
-            token=token,
-        )
-
-        if not isinstance(archive, bytes):
-            raise RuntimeError("Expected ZIP archive")
-
-        if len(archive) > 3 * 1024 * 1024:
-            raise ValueError("Archive exceeds 3 MB limit")
-
-        destination = runner.OUTPUT / job_id
-
-        if destination.exists():
-            import shutil
-            shutil.rmtree(destination)
-
-        project = runner.extract_project(
-            archive, slug, destination
-        )
-
-        image = f"devsphere-built/{slug}:{job_id[:8]}"
-
-        runner.build_image(project, image)
-
-        update_job(
-            job_id,
-            "deploying",
-            image=image,
-        )
-
-        status, deployment = runner.api(
-            "POST",
-            DEPLOY + "/deployments",
-            {
-                "name": slug,
-                "image": image,
-                "container_port": 8000,
-                "replicas": 1,
-            },
-            token,
-        )
-
-        if status != 201:
-            raise RuntimeError(f"Deployment rejected: {deployment}")
-
-        deployment_id = deployment["id"]
-
-        update_job(
-            job_id,
-            "deploying",
-            deployment_id=deployment_id,
-        )
-
-        ready = runner.wait_for_deployment(
-            deployment_id, token, timeout=180
-        )
-
-        update_job(
-            job_id,
-            "completed",
-            kubernetes_name=deployment["name"],
-            namespace=ready["namespace"],
-        )
-
-        logger.info("Build completed: %s", job_id)
-
-    except Exception as exc:
-        logger.exception("Build failed: %s", job_id)
-
-        # Limit the message length and avoid storing traceback details.
-        update_job(
-            job_id,
-            "failed",
-            error_message=type(exc).__name__,
-        )
-
-    finally:
-        with lock:
-            active_jobs.discard(job_id)
+    return row_to_dict(row)
 
 
 @app.get("/health")
@@ -290,7 +114,7 @@ def create_build(
 
     try:
         result = json.loads(operation["result"])
-    except (TypeError, KeyError, ValueError):
+    except (KeyError, TypeError, ValueError):
         raise HTTPException(409, "Invalid provisioning result")
 
     if result.get("template_id") != "fastapi-basic":
@@ -299,10 +123,12 @@ def create_build(
     slug = result.get("project_slug", "")
 
     if (
-        not re.fullmatch(
-            r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*", slug
+        not isinstance(slug, str)
+        or len(slug) > 40
+        or not re.fullmatch(
+            r"[a-z][a-z0-9]*(?:-[a-z0-9]+)*",
+            slug,
         )
-        or len(slug) > 63
     ):
         raise HTTPException(422, "Invalid project slug")
 
@@ -313,23 +139,31 @@ def create_build(
             db.execute(
                 text("""
                     INSERT INTO build_jobs
-                    (id, operation_id, owner_id, project_slug, status)
-                    VALUES (:id, :operation, :owner, :slug, 'queued')
+                    (id, operation_id, owner_id, project_slug,
+                     status, token_ciphertext)
+                    VALUES
+                    (:id, :operation, :owner, :slug,
+                     'queued', :token)
                 """),
                 {
                     "id": job_id,
                     "operation": operation_id,
                     "owner": user["id"],
                     "slug": slug,
+                    "token": cipher.encrypt(
+                        token.encode()
+                    ).decode(),
                 },
             )
 
     except IntegrityError:
+        # Preserve the original job for idempotent submissions.
         with SessionLocal() as db:
             row = db.execute(
                 text("""
                     SELECT * FROM build_jobs
-                    WHERE operation_id=:operation AND owner_id=:owner
+                    WHERE operation_id=:operation
+                      AND owner_id=:owner
                 """),
                 {
                     "operation": operation_id,
@@ -338,15 +172,11 @@ def create_build(
             ).mappings().first()
 
         if not row:
-            raise HTTPException(409, "Build operation conflict")
+            raise HTTPException(409, "Build conflict")
 
         return row_to_dict(row)
 
-    executor.submit(
-        run_build, job_id, operation_id, slug, token
-    )
-
-    return get_record(job_id)
+    return get_job(job_id)
 
 
 @app.get("/builds")
@@ -375,13 +205,7 @@ def get_build(
     authorization: str | None = Header(default=None),
 ):
     _, user = authenticate(authorization)
-
-    record = get_record(job_id)
-
-    if not record or record["owner_id"] != user["id"]:
-        raise HTTPException(404, "Build not found")
-
-    return record
+    return owned_job(job_id, user["id"])
 
 
 @app.post("/builds/{job_id}/retry", status_code=202)
@@ -396,26 +220,30 @@ def retry_build(
             text("""
                 UPDATE build_jobs
                 SET status='queued',
+                    token_ciphertext=:token,
                     error_message=NULL,
+                    lease_owner=NULL,
+                    lease_expires_at=NULL,
                     updated_at=NOW()
                 WHERE id=:id
                   AND owner_id=:owner
                   AND status='failed'
                   AND attempt_count < max_attempts
-                RETURNING operation_id, project_slug
+                RETURNING id
             """),
-            {"id": job_id, "owner": user["id"]},
+            {
+                "id": job_id,
+                "owner": user["id"],
+                "token": cipher.encrypt(
+                    token.encode()
+                ).decode(),
+            },
         ).first()
 
     if not row:
         raise HTTPException(
             409,
-            "Build not retryable, not owned, or attempt limit reached",
+            "Build not retryable or attempt limit reached",
         )
 
-    executor.submit(
-        run_build, job_id, row.operation_id,
-        row.project_slug, token
-    )
-
-    return get_record(job_id)
+    return get_job(job_id)
