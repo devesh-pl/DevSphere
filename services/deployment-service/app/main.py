@@ -181,7 +181,7 @@ def health():
 def ready(db: Session = Depends(get_db)):
     try:
         db.execute(text("SELECT 1"))
-        core_api.read_namespace(NAMESPACE)
+        apps_api.list_namespaced_deployment(namespace=NAMESPACE, limit=1)
         return {"status": "ready"}
     except Exception:
         raise HTTPException(503, "Deployment dependencies unavailable")
@@ -433,3 +433,7 @@ install_metrics(app, "deployment")
 
 from app.k8s_metrics import register_kubernetes_metrics
 register_kubernetes_metrics()
+
+
+from app.reconciler import register_reconciler
+register_reconciler(app)

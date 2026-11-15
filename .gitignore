@@ -63,3 +63,6 @@ crash.log
 *.crt
 secrets/infrastructure/docker/kubeconfig/*.yaml
 .env.build.local
+
+# Local Kubernetes credentials (never commit)
+/infrastructure/docker/kubeconfig/*.yaml

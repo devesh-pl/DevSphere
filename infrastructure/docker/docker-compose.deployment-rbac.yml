@@ -1,0 +1,7 @@
+services:
+  deployment-service:
+    environment:
+      KUBECONFIG: /app/kubeconfig/deployment-restricted.yaml
+
+    volumes:
+      - ./kubeconfig/deployment-restricted.yaml:/app/kubeconfig/deployment-restricted.yaml:ro
