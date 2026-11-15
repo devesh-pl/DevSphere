@@ -427,3 +427,6 @@ app.include_router(rollout_router)
 
 from app.diagnostics import router as diagnostics_router
 app.include_router(diagnostics_router)
+
+from app.metrics import install_metrics
+install_metrics(app, "deployment")
