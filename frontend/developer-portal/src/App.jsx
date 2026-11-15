@@ -31,6 +31,10 @@ async function request(url, token, options = {}) {
   }
 
   if (!response.ok) {
+    if (response.status === 401 && token) {
+      window.dispatchEvent(new Event('devsphere:auth-expired'));
+    }
+
     const detail = data.detail;
     const message = typeof detail === 'string'
       ? detail
@@ -684,6 +688,24 @@ export default function App() {
   const [builds, setBuilds] = useState([]);
   const [deployments, setDeployments] = useState([]);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const handleExpired = () => {
+      setToken(null);
+      setUser(null);
+      setOperations([]);
+      setBuilds([]);
+      setDeployments([]);
+      setSection('overview');
+      setError('Your session expired. Please sign in again.');
+    };
+
+    window.addEventListener('devsphere:auth-expired', handleExpired);
+
+    return () => {
+      window.removeEventListener('devsphere:auth-expired', handleExpired);
+    };
+  }, []);
 
   const refresh = useCallback(async () => {
     if (!token) return;
