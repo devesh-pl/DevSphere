@@ -1,0 +1,443 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+
+:root {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  color: #e9edf7;
+  background: #0a0f1d;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; min-width: 320px; }
+
+button, input, select {
+  font: inherit;
+}
+
+button { cursor: pointer; }
+button:disabled { opacity: .45; cursor: not-allowed; }
+
+h1, h2, h3, h4, p { margin-top: 0; }
+h1, h2, h3, h4 {
+  font-family: 'Space Grotesk', sans-serif;
+}
+
+.app-shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 246px;
+  flex-shrink: 0;
+  background: #101729;
+  border-right: 1px solid #263149;
+  padding: 26px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  font: 700 22px 'Space Grotesk', sans-serif;
+  margin: 0 10px 45px;
+}
+
+.brand-icon {
+  width: 39px;
+  height: 39px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: linear-gradient(135deg, #7666f8, #3195e8);
+  border-radius: 12px;
+}
+
+.sidebar-label, .eyebrow {
+  color: #8491ab;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  margin: 0 12px 15px;
+}
+
+.nav-link {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 0;
+  background: transparent;
+  color: #aeb9d0;
+  padding: 13px 15px;
+  border-radius: 10px;
+  text-align: left;
+  margin-bottom: 5px;
+}
+
+.nav-link:hover { background: #1c2940; color: #fff; }
+.nav-link.active {
+  color: #fff;
+  background: #30305e;
+}
+
+.sidebar-footer { margin-top: auto; }
+.account {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #aab6ca;
+  padding: 12px;
+  overflow-wrap: anywhere;
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 36px 42px;
+}
+
+.topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 34px;
+}
+
+.topbar h1 { margin: 0; font-size: 30px; }
+.topbar .eyebrow { margin-left: 0; }
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-bottom: 24px;
+}
+
+.stat, .panel {
+  border: 1px solid #273248;
+  background: #121b2e;
+  border-radius: 15px;
+}
+
+.stat {
+  padding: 24px;
+  position: relative;
+}
+
+.stat p { color: #9aa8c0; font-size: 13px; }
+.stat strong {
+  display: block;
+  font-size: 35px;
+  font-family: 'Space Grotesk', sans-serif;
+}
+.stat > svg {
+  position: absolute;
+  right: 24px;
+  top: 25px;
+  color: #857cf2;
+}
+
+.panel {
+  margin-bottom: 22px;
+  padding: 25px;
+}
+
+.panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin-bottom: 22px;
+}
+
+.panel-heading svg { color: #8e83ff; }
+.panel-heading h3 { margin: 0; font-size: 18px; }
+
+.project-form {
+  display: grid;
+  grid-template-columns: minmax(170px, 1fr) minmax(160px, 1fr) auto;
+  align-items: end;
+  gap: 16px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  color: #abb7cd;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+input, select {
+  width: 100%;
+  padding: 12px 14px;
+  color: #f3f5ff;
+  background: #0d1525;
+  border: 1px solid #35415a;
+  border-radius: 9px;
+  outline: none;
+}
+
+input:focus {
+  border-color: #8e83ff;
+  box-shadow: 0 0 0 3px #8e83ff20;
+}
+
+.primary, .small-button {
+  border: 1px solid transparent;
+  border-radius: 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.primary {
+  padding: 12px 19px;
+  color: white;
+  background: #6f63e8;
+  font-weight: 700;
+}
+
+.primary:hover { background: #8278f6; }
+.full { width: 100%; }
+
+.small-button {
+  padding: 9px 12px;
+  color: #e3e7f6;
+  background: #202d44;
+  border-color: #39465d;
+  font-size: 12px;
+}
+
+.small-button:hover { background: #31415e; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; text-align: left; }
+th {
+  color: #8c9ab5;
+  font-size: 11px;
+  letter-spacing: .7px;
+  text-transform: uppercase;
+  padding: 13px;
+  border-bottom: 1px solid #2b3850;
+}
+td {
+  border-bottom: 1px solid #263149;
+  padding: 15px 13px;
+  font-size: 13px;
+}
+
+.mono { font-family: ui-monospace, monospace; }
+.small { font-size: 11px; }
+.muted, .empty { color: #98a5bf; }
+.empty { padding: 24px 0; }
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  background: #2a3450;
+  color: #d2dcf1;
+  text-transform: capitalize;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status.completed, .status.running {
+  color: #5fe0b1;
+  background: #153d37;
+}
+
+.status.failed, .status.missing {
+  color: #ff9b9b;
+  background: #46272e;
+}
+
+.status.building, .status.deploying, .status.queued {
+  color: #ffce81;
+  background: #493a22;
+}
+
+.deployment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.deployment-card {
+  border: 1px solid #303e55;
+  background: #0e1729;
+  border-radius: 12px;
+  padding: 19px;
+}
+
+.deployment-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: start;
+}
+
+.deployment-top h4 { margin: 0 0 7px; }
+.image-name {
+  overflow-wrap: anywhere;
+  color: #9ca9c1;
+  font: 12px ui-monospace, monospace;
+  margin-top: 19px;
+}
+
+.deployment-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 18px;
+  font-size: 12px;
+  color: #c0cbe0;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.revision-list {
+  margin-top: 17px;
+  border-top: 1px solid #344056;
+  padding-top: 12px;
+}
+
+.revision {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin: 9px 0;
+  font-size: 12px;
+}
+
+.error {
+  background: #40232e;
+  color: #ffb5c2;
+  padding: 13px;
+  border-radius: 9px;
+  margin-bottom: 16px;
+}
+
+.message {
+  color: #a4d6ff;
+  font-size: 12px;
+  margin: 16px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.auth-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(ellipse at top, #20234c, #0a0f1d 70%);
+}
+
+.auth-brand { text-align: center; margin-bottom: 30px; }
+.auth-brand .brand-icon { margin: 0 auto 15px; }
+.auth-brand h1 { font-size: 36px; margin: 0 0 9px; }
+.auth-brand p { color: #9faec8; }
+
+.auth-card {
+  width: 100%;
+  max-width: 420px;
+  padding: 32px;
+  background: #151e32;
+  border: 1px solid #334059;
+  border-radius: 17px;
+}
+
+.auth-card h2 { margin-bottom: 8px; }
+.auth-card > p { margin-bottom: 23px; }
+.auth-card label { margin-bottom: 19px; }
+
+.text-button {
+  display: block;
+  margin: 22px auto 0;
+  color: #aaa3ff;
+  border: 0;
+  background: none;
+}
+
+@media (max-width: 900px) {
+  .sidebar { width: 76px; padding: 20px 8px; }
+  .sidebar-brand span, .sidebar-label, .nav-link:not(.active) {
+    font-size: 0;
+  }
+  .nav-link { font-size: 0; justify-content: center; }
+  .account span { display: none; }
+  .sidebar-brand { justify-content: center; margin: 0 0 35px; }
+  .main { padding: 25px 20px; }
+  .project-form { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 600px) {
+  .sidebar { width: 60px; }
+  .stat-grid { grid-template-columns: 1fr; gap: 10px; }
+  .main { padding: 20px 12px; }
+  .panel { padding: 17px; }
+  .topbar h1 { font-size: 24px; }
+}
+
+/* Phase 11.2 — Live status and build diagnostics */
+
+.build-error {
+  max-width: 240px;
+  margin-top: 7px;
+  color: #ffadad;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  overflow-wrap: anywhere;
+}
+
+.status.unavailable {
+  color: #aeb9d0;
+  background: #30384b;
+}
+
+.status.queued,
+.status.building,
+.status.deploying {
+  animation: devsphere-status-pulse 2s ease-in-out infinite;
+}
+
+@keyframes devsphere-status-pulse {
+  50% { opacity: 0.65; }
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #a79eff;
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .status.queued,
+  .status.building,
+  .status.deploying {
+    animation: none;
+  }
+}
