@@ -31,7 +31,15 @@ def api(method, url, data=None, token=None):
             return response.status, json.load(response)
 
     except urllib.error.HTTPError as error:
-        return error.code, json.loads(error.read())
+        body = error.read().decode("utf-8", errors="replace")
+        try:
+            details = json.loads(body)
+        except json.JSONDecodeError:
+            details = {
+                "detail": body or "(empty response)",
+                "http_status": error.code,
+            }
+        return error.code, details
 
 
 def wait_for(url, token, timeout=240):
