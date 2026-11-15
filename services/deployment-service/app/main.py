@@ -430,3 +430,6 @@ app.include_router(diagnostics_router)
 
 from app.metrics import install_metrics
 install_metrics(app, "deployment")
+
+from app.k8s_metrics import register_kubernetes_metrics
+register_kubernetes_metrics()

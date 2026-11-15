@@ -1,0 +1,326 @@
+{
+  "uid": "devsphere-kubernetes",
+  "title": "DevSphere \u2014 Kubernetes Workloads",
+  "tags": [
+    "devsphere",
+    "kubernetes",
+    "operations"
+  ],
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Desired Replicas",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "devsphere-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "expr": "sum(devsphere_k8s_deployment_desired_replicas)",
+          "refId": "A",
+          "legendFormat": "{{deployment}}{{pod}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 2,
+      "title": "Ready Replicas",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "devsphere-prometheus"
+      },
+      "gridPos": {
+        "x": 6,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "expr": "sum(devsphere_k8s_deployment_ready_replicas)",
+          "refId": "A",
+          "legendFormat": "{{deployment}}{{pod}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 3,
+      "title": "Ready Pods",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "devsphere-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "expr": "sum(devsphere_k8s_pod_ready)",
+          "refId": "A",
+          "legendFormat": "{{deployment}}{{pod}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 4,
+      "title": "Container Restarts",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "devsphere-prometheus"
+      },
+      "gridPos": {
+        "x": 18,
+        "y": 0,
+        "w": 6,
+        "h": 5
+      },
+      "targets": [
+        {
+          "expr": "sum(devsphere_k8s_pod_restarts)",
+          "refId": "A",
+          "legendFormat": "{{deployment}}{{pod}}",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "orientation": "auto"
+      }
+    },
+    {
+      "id": 5,
+      "title": "Ready Replicas by Deployment",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "devsphere-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 5,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "devsphere_k8s_deployment_ready_replicas",
+          "refId": "A",
+          "legendFormat": "{{deployment}}{{pod}}",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Desired Replicas by Deployment",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "devsphere-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 5,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "devsphere_k8s_deployment_desired_replicas",
+          "refId": "A",
+          "legendFormat": "{{deployment}}{{pod}}",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Pod Restart Counts",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "devsphere-prometheus"
+      },
+      "gridPos": {
+        "x": 0,
+        "y": 14,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "devsphere_k8s_pod_restarts",
+          "refId": "A",
+          "legendFormat": "{{deployment}}{{pod}}",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Kubernetes Collection Health",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "devsphere-prometheus"
+      },
+      "gridPos": {
+        "x": 12,
+        "y": 14,
+        "w": 12,
+        "h": 9
+      },
+      "targets": [
+        {
+          "expr": "devsphere_k8s_collection_success",
+          "refId": "A",
+          "legendFormat": "{{deployment}}{{pod}}",
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      }
+    }
+  ]
+}
