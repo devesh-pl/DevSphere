@@ -66,3 +66,7 @@ secrets/infrastructure/docker/kubeconfig/*.yaml
 
 # Local Kubernetes credentials (never commit)
 /infrastructure/docker/kubeconfig/*.yaml
+
+# DevSphere local Kubernetes credential rotation
+/infrastructure/docker/kubeconfig/
+/infrastructure/docker/*.bak
