@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Activity, Box, Cloud, FolderPlus, Hammer, History,
   LogOut, RefreshCw, Rocket, ShieldCheck
@@ -32,7 +32,11 @@ async function request(url, token, options = {}) {
 
   if (!response.ok) {
     if (response.status === 401 && token) {
-      window.dispatchEvent(new Event('devsphere:auth-expired'));
+      window.dispatchEvent(
+        new CustomEvent('devsphere:auth-expired', {
+          detail: { token }
+        })
+      );
     }
 
     const detail = data.detail;
@@ -61,7 +65,7 @@ function Status({ value }) {
   );
 }
 
-function AuthScreen({ onAuthenticated }) {
+function AuthScreen({ onAuthenticated, sessionMessage }) {
   const [register, setRegister] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -154,6 +158,12 @@ function AuthScreen({ onAuthenticated }) {
             onChange={e => setPassword(e.target.value)}
           />
         </label>
+
+        {sessionMessage && (
+          <div className="session-notice" role="alert">
+            {sessionMessage}
+          </div>
+        )}
 
         {error && <div className="error">{error}</div>}
 
@@ -682,6 +692,9 @@ function Deployments({ token, deployments, onRefresh }) {
 
 export default function App() {
   const [token, setToken] = useState(null);
+  const currentToken = useRef(null);
+  const [sessionMessage, setSessionMessage] = useState('');
+
   const [user, setUser] = useState(null);
   const [section, setSection] = useState('overview');
   const [operations, setOperations] = useState([]);
@@ -690,14 +703,24 @@ export default function App() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const handleExpired = () => {
+    const handleExpired = (event) => {
+      if (
+        !currentToken.current ||
+        event.detail?.token !== currentToken.current
+      ) {
+        return;
+      }
+
+      currentToken.current = null;
       setToken(null);
       setUser(null);
       setOperations([]);
       setBuilds([]);
       setDeployments([]);
       setSection('overview');
-      setError('Your session expired. Please sign in again.');
+      setSessionMessage(
+        'Your session expired. Please sign in again.'
+      );
     };
 
     window.addEventListener('devsphere:auth-expired', handleExpired);
@@ -706,6 +729,10 @@ export default function App() {
       window.removeEventListener('devsphere:auth-expired', handleExpired);
     };
   }, []);
+
+  useEffect(() => {
+    currentToken.current = token;
+  }, [token]);
 
   const refresh = useCallback(async () => {
     if (!token) return;
@@ -749,10 +776,18 @@ export default function App() {
   }
 
   if (!token) {
-    return <AuthScreen onAuthenticated={(accessToken, account) => {
-      setToken(accessToken);
-      setUser(account);
-    }} />;
+    return (
+      <AuthScreen
+        sessionMessage={sessionMessage}
+        onAuthenticated={(accessToken, account) => {
+          currentToken.current = accessToken;
+          setSessionMessage('');
+          setError('');
+          setToken(accessToken);
+          setUser(account);
+        }}
+      />
+    );
   }
 
   const navigation = [
@@ -795,6 +830,8 @@ export default function App() {
             <span>{user?.email || 'Developer'}</span>
           </div>
           <button className="nav-link" onClick={() => {
+            currentToken.current = null;
+            setSessionMessage('');
             setToken(null);
             setUser(null);
             setOperations([]);

@@ -477,3 +477,16 @@ select:focus-visible {
   color: #c6e7d2;
   font: 11px/1.6 ui-monospace, monospace;
 }
+
+/* Authentication session notifications */
+
+.session-notice {
+  margin-bottom: 18px;
+  padding: 13px 15px;
+  border: 1px solid #65532e;
+  border-radius: 9px;
+  background: #342b1e;
+  color: #f4d59a;
+  font-size: 13px;
+  line-height: 1.5;
+}
