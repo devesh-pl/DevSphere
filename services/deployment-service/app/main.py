@@ -62,6 +62,17 @@ class DeploymentCreate(BaseModel):
 ALLOWED_IMAGES = {"nginxinc/nginx-unprivileged:stable-alpine"}
 
 
+def allowed_development_image(image: str) -> bool:
+    """Allow only the fixed test image or locally built DevSphere images."""
+    if image in ALLOWED_IMAGES:
+        return True
+
+    return re.fullmatch(
+        r"devsphere-built/[a-z][a-z0-9-]{2,62}:[a-f0-9]{8,32}",
+        image,
+    ) is not None
+
+
 def get_db():
     with SessionLocal() as db:
         yield db
@@ -182,7 +193,7 @@ def create_deployment(
     user: dict = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    if payload.image not in ALLOWED_IMAGES:
+    if not allowed_development_image(payload.image):
         raise HTTPException(
             422,
             "Image not in development allowlist",
@@ -409,3 +420,10 @@ def delete_deployment(
     db.commit()
 
     return {"id": deployment_id, "status": "deleted"}
+
+
+from app.rollouts import router as rollout_router
+app.include_router(rollout_router)
+
+from app.diagnostics import router as diagnostics_router
+app.include_router(diagnostics_router)

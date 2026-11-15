@@ -411,6 +411,8 @@ function Deployments({ token, deployments, onRefresh }) {
   const [revisions, setRevisions] = useState({});
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');
+  const [diagnostics, setDiagnostics] = useState({});
+
   const [live, setLive] = useState({});
 
   useEffect(() => {
@@ -460,6 +462,31 @@ function Deployments({ token, deployments, onRefresh }) {
     };
   }, [token, deployments.map(d => d.id).join(',')]);
 
+
+
+  async function viewLogs(deployment) {
+    setError('');
+
+    try {
+      const [logs, pods] = await Promise.all([
+        request(
+          `${API.deployments}/deployments/${deployment.id}/logs`,
+          token
+        ),
+        request(
+          `${API.deployments}/deployments/${deployment.id}/pods`,
+          token
+        )
+      ]);
+
+      setDiagnostics(previous => ({
+        ...previous,
+        [deployment.id]: { logs, pods }
+      }));
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   async function scale(deployment, replicas) {
     setBusy(deployment.id);
@@ -583,7 +610,36 @@ function Deployments({ token, deployments, onRefresh }) {
                 >
                   <History size={14} /> History
                 </button>
+                <button
+                  className="small-button"
+                  onClick={() => viewLogs(deployment)}
+                >
+                  <Activity size={14} /> View logs
+                </button>
               </div>
+
+              {diagnostics[deployment.id] && (
+                <div className="diagnostic-panel">
+                  <h4>Pod diagnostics</h4>
+
+                  {diagnostics[deployment.id].pods.pods.map(pod => (
+                    <div className="pod-row" key={pod.name}>
+                      <span className="mono">{pod.name}</span>
+                      <span>{pod.phase}</span>
+                      <span>
+                        {pod.ready ? 'Ready' : 'Not ready'}
+                      </span>
+                      <span>Restarts: {pod.restarts}</span>
+                    </div>
+                  ))}
+
+                  <h4>Application logs</h4>
+                  <pre className="log-output">
+                    {diagnostics[deployment.id].logs.logs ||
+                      'No log output yet.'}
+                  </pre>
+                </div>
+              )}
 
               {revisions[deployment.id] && (
                 <div className="revision-list">

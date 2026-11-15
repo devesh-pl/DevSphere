@@ -441,3 +441,39 @@ select:focus-visible {
     animation: none;
   }
 }
+
+/* Application diagnostics */
+
+.diagnostic-panel {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid #354158;
+}
+
+.diagnostic-panel h4 {
+  margin: 12px 0;
+  font-size: 13px;
+}
+
+.pod-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 9px 0;
+  color: #abbad2;
+  font-size: 11px;
+  border-bottom: 1px solid #2b364b;
+}
+
+.log-output {
+  max-height: 320px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 14px;
+  border: 1px solid #303b52;
+  border-radius: 9px;
+  background: #080f1b;
+  color: #c6e7d2;
+  font: 11px/1.6 ui-monospace, monospace;
+}
