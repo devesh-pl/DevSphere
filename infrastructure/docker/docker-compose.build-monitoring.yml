@@ -1,0 +1,4 @@
+services:
+  grafana:
+    environment:
+      BUILD_GRAFANA_PASSWORD: ${BUILD_GRAFANA_PASSWORD:?Required}
