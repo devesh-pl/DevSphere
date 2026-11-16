@@ -70,3 +70,9 @@ secrets/infrastructure/docker/kubeconfig/*.yaml
 # DevSphere local Kubernetes credential rotation
 /infrastructure/docker/kubeconfig/
 /infrastructure/docker/*.bak
+
+# Generated build artifacts
+/output/build-runs/
+
+# Local broken-worker backup
+/services/orchestrator-service/app/worker.py.broken
