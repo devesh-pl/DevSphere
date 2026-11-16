@@ -76,3 +76,6 @@ secrets/infrastructure/docker/kubeconfig/*.yaml
 
 # Local broken-worker backup
 /services/orchestrator-service/app/worker.py.broken
+
+# Local security review reports
+/output/security-review/
