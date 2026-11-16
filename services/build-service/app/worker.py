@@ -44,6 +44,7 @@ def recover_expired():
                 UPDATE build_jobs
                 SET status='failed',
                     error_message='Worker lease expired; retry limit reached',
+                    token_ciphertext=NULL,
                     lease_owner=NULL,
                     lease_expires_at=NULL,
                     updated_at=NOW()
