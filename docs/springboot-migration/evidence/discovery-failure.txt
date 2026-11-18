@@ -1,0 +1,2 @@
+PASS: Actual unavailable Project instance produces HTTP 503 through Eureka/LoadBalancer
+PASS: Project service restored and only the failure-test Project record removed

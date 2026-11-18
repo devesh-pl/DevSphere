@@ -1,0 +1,20 @@
+{
+  "checks": [
+    "Project create/read/list/update, duplicate, validation, authentication and cross-user rejection",
+    "Real Java-to-Java PROJECT-SERVICE lookup through Eureka/LoadBalancer",
+    "Kubernetes creation and real scale to two ready replicas",
+    "Prometheus reports actual Java workload readiness with two replicas",
+    "Scale back, persisted revisions, rollback, pod diagnostics and application logs",
+    "Backend CRUD demonstrated through NGINX; PostgreSQL persistence verified separately by verifier",
+    "Deleted only resources created by this demonstration; deployment/build audit rows retained"
+  ],
+  "resources": {
+    "project_id": "d1d41e22-6ce4-4670-b19f-5373305c7b29",
+    "deployment_id": "de46e810-b9ae-4a90-b9f3-edf888211442",
+    "kubernetes_name": "ds-java-de46e810-b9a"
+  },
+  "java_ready_metric": {
+    "deployment": "ds-java-de46e810-b9a",
+    "ready_replicas": 2
+  }
+}

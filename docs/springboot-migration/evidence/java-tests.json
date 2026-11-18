@@ -1,0 +1,62 @@
+{
+  "runtime": "Java 21.0.13",
+  "tests": [
+    {
+      "name": "com.devsphere.deployment.ProjectDiscoveryTest",
+      "tests": "4",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "33.995"
+    },
+    {
+      "name": "com.devsphere.deployment.ReconcilerTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.184"
+    },
+    {
+      "name": "com.devsphere.deployment.DeploymentApiTest",
+      "tests": "11",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "45.729"
+    },
+    {
+      "name": "com.devsphere.deployment.WorkloadsTest",
+      "tests": "2",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "64.01"
+    },
+    {
+      "name": "com.devsphere.eureka.EurekaApplicationTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "16.947"
+    },
+    {
+      "name": "com.devsphere.project.ProjectApiTest",
+      "tests": "11",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "23.313"
+    },
+    {
+      "name": "com.devsphere.project.ProvisioningClientTest",
+      "tests": "1",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.158"
+    }
+  ],
+  "total": 32
+}

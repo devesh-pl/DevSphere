@@ -1,0 +1,13 @@
+                  id                  | management_service | status  | replicas |                   image
+--------------------------------------+--------------------+---------+----------+-------------------------------------------
+ 6ffe52e3-fc8d-414f-afec-0d4d8eb69005 | java               | deleted |        1 | nginxinc/nginx-unprivileged:stable-alpine
+(1 row)
+
+ revision_number | replicas | change_type
+-----------------+----------+-------------
+               1 |        1 | initial
+               2 |        2 | update
+               3 |        1 | update
+               4 |        2 | rollback
+               5 |        1 | rollback
+(5 rows)

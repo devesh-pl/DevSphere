@@ -47,3 +47,5 @@ Build retains PostgreSQL SKIP LOCKED, encrypted developer JWT, leases, heartbeat
 ## Version selection
 
 Java 21 target; Spring Boot 4.1.2 / Spring Cloud 2025.1.4. Official compatibility: https://spring.io/projects/spring-cloud/ . Maven Central artifacts were resolved. Fabric8 8.0.0 BOM aligns all Kubernetes artifacts; Boot parent alone otherwise selects older transitive models. Monitoring adds a separate dashboard and scrape job, retaining existing panels/queries.
+
+The existing Python Kubernetes collector reads both devsphere and devsphere-java labels to preserve readiness/pod metrics across the hybrid platform. This is read-only monitoring; its lifecycle APIs and reconciler continue to exclude Java workloads.

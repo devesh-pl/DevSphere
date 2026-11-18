@@ -1,0 +1,12 @@
+
+===== DEVSPHERE PLATFORM SMOKE TEST =====
+
+PASS: Gateway -> HTTP 200
+PASS: Orchestrator -> HTTP 200
+PASS: Deployment -> HTTP 200
+PASS: Build -> HTTP 200
+PASS: Auth protection -> HTTP 401
+PASS: Kubernetes metrics collection -> 1
+
+========================================
+ALL PLATFORM SMOKE TESTS PASSED

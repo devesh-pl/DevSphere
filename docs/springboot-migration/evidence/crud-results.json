@@ -1,0 +1,18 @@
+{
+  "checks": [
+    "Project create/read/list/update, duplicate, validation, authentication and cross-user rejection",
+    "Real Java-to-Java PROJECT-SERVICE lookup through Eureka/LoadBalancer",
+    "Kubernetes creation and real scale to two ready replicas",
+    "Scale back, persisted revisions, rollback, pod diagnostics and application logs",
+    "Existing Python build queue, Docker image build, Kind load/deploy, terminal archive",
+    "Backend CRUD demonstrated through NGINX; PostgreSQL persistence verified separately by verifier",
+    "Deleted only resources created by this demonstration; deployment/build audit rows retained"
+  ],
+  "resources": {
+    "project_id": "7bdabd6d-bf3b-4f9c-bcce-024bd94cd5fd",
+    "deployment_id": "6ffe52e3-fc8d-414f-afec-0d4d8eb69005",
+    "kubernetes_name": "ds-java-6ffe52e3-fc8",
+    "build_id": "64344b1f2f0548f0b6d7761b5b21cb88",
+    "build_deployment_id": "2e5aca39-5421-481f-bf8b-98d2d5eb785a"
+  }
+}

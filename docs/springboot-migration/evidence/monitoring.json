@@ -1,0 +1,47 @@
+{
+  "spring_targets": [
+    {
+      "service": "deployment-spring",
+      "up": "1"
+    },
+    {
+      "service": "project-spring",
+      "up": "1"
+    },
+    {
+      "service": "eureka",
+      "up": "1"
+    }
+  ],
+  "http_request_series": [
+    {
+      "metric": {
+        "service": "eureka"
+      },
+      "value": [
+        1794997717.957,
+        "2898"
+      ]
+    },
+    {
+      "metric": {
+        "service": "project-spring"
+      },
+      "value": [
+        1794997717.957,
+        "110"
+      ]
+    },
+    {
+      "metric": {
+        "service": "deployment-spring"
+      },
+      "value": [
+        1794997717.957,
+        "517"
+      ]
+    }
+  ],
+  "spring_dashboard_panels": 6,
+  "available_devsphere_dashboards": 6
+}

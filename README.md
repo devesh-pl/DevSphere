@@ -119,3 +119,20 @@ These measurements come from local development tests and should not be interpret
 ### Project Status
 
 DevSphere is a working local prototype. Production deployment requires additional build isolation, internal worker authentication hardening, secret management, and operational testing.
+
+
+## Spring Boot + Eureka migration
+
+The existing platform is extended on `feat/springboot-eureka` with Java Project Management, a parallel Java Deployment preview, and the existing Python Build Service. The original dashboard and Python deployment route remain available. The Java preview is protected by an explicit write flag and separate workload authority; it is not an automatic traffic migration.
+
+Start with [the inspected current state](docs/springboot-migration/current-state.md), [macOS setup](docs/springboot-migration/setup.md), [architecture](docs/springboot-migration/architecture.md), [CRUD matrix/API reference](docs/springboot-migration/crud-api-reference.md), and [actual execution results](docs/springboot-migration/execution-report.md). The migration folder also contains Eureka, frontend, Docker/Kubernetes and troubleshooting demonstrations plus a Postman collection.
+
+```bash
+./mvnw -B verify
+.venv/bin/python scripts/prepare-spring-databases.py
+bash scripts/start-springboot.sh
+bash scripts/verify-springboot-platform.sh
+bash scripts/stop-springboot.sh
+```
+
+Read setup.md before enabling Java Kubernetes writes. Never reset existing databases, volumes or workloads to run the demonstration. Historical release evaluation remains historical; see the new execution report for rerun evidence.

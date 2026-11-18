@@ -32,3 +32,6 @@ Java 23.0.1 only; Maven missing; isolated Maven/JDK21 tooling required. Docker m
 6. Add opt-in compose/gateway/monitoring, unit and isolated integration verification, docs. Switch production deployment routing only after parity/e2e evidence; otherwise retain preview and document unmet cutover gate.
 
 Spring Boot 4.1.2 / Cloud 2025.1.4 verified in Maven Central; official compatibility table maps 2025.1.2+ to Boot 4.1.x: https://spring.io/projects/spring-cloud/ . No live workloads, containers, volumes or release tags changed during audit.
+
+## Live ownership findings
+The running Build API uses restricted devsphere_build rather than build_service. build_jobs and deployment_revisions are owned by the PostgreSQL administrator, while deployments belongs to deployment_service. Safe preparation uses the existing administrator only for additive Build DDL; Java migration does not create a redundant index on the administrator-owned revisions table. Existing grants and table ownership are preserved.

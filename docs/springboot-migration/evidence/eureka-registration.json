@@ -1,0 +1,100 @@
+{
+  "applications": {
+    "versions__delta": "1",
+    "apps__hashcode": "UP_2_",
+    "application": [
+      {
+        "name": "DEPLOYMENT-SERVICE",
+        "instance": [
+          {
+            "instanceId": "d2013fc00949:deployment-service:8088",
+            "hostName": "172.18.0.17",
+            "app": "DEPLOYMENT-SERVICE",
+            "ipAddr": "172.18.0.17",
+            "status": "UP",
+            "overriddenStatus": "UNKNOWN",
+            "port": {
+              "$": 8088,
+              "@enabled": "true"
+            },
+            "securePort": {
+              "$": 443,
+              "@enabled": "false"
+            },
+            "countryId": 1,
+            "dataCenterInfo": {
+              "@class": "com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo",
+              "name": "MyOwn"
+            },
+            "leaseInfo": {
+              "renewalIntervalInSecs": 10,
+              "durationInSecs": 90,
+              "registrationTimestamp": 1794994914990,
+              "lastRenewalTimestamp": 1794997622433,
+              "evictionTimestamp": 0,
+              "serviceUpTimestamp": 1794994914429
+            },
+            "metadata": {
+              "management.port": "8088"
+            },
+            "homePageUrl": "http://172.18.0.17:8088/",
+            "statusPageUrl": "http://172.18.0.17:8088/actuator/info",
+            "healthCheckUrl": "http://172.18.0.17:8088/actuator/health",
+            "vipAddress": "deployment-service",
+            "secureVipAddress": "deployment-service",
+            "isCoordinatingDiscoveryServer": "false",
+            "lastUpdatedTimestamp": "1794994914991",
+            "lastDirtyTimestamp": "1794994913159",
+            "actionType": "ADDED"
+          }
+        ]
+      },
+      {
+        "name": "PROJECT-SERVICE",
+        "instance": [
+          {
+            "instanceId": "ff71a4836de5:project-service:8087",
+            "hostName": "172.18.0.18",
+            "app": "PROJECT-SERVICE",
+            "ipAddr": "172.18.0.18",
+            "status": "UP",
+            "overriddenStatus": "UNKNOWN",
+            "port": {
+              "$": 8087,
+              "@enabled": "true"
+            },
+            "securePort": {
+              "$": 443,
+              "@enabled": "false"
+            },
+            "countryId": 1,
+            "dataCenterInfo": {
+              "@class": "com.netflix.appinfo.InstanceInfo$DefaultDataCenterInfo",
+              "name": "MyOwn"
+            },
+            "leaseInfo": {
+              "renewalIntervalInSecs": 10,
+              "durationInSecs": 90,
+              "registrationTimestamp": 1794996995981,
+              "lastRenewalTimestamp": 1794997629954,
+              "evictionTimestamp": 0,
+              "serviceUpTimestamp": 1794994695917
+            },
+            "metadata": {
+              "management.port": "8087"
+            },
+            "homePageUrl": "http://172.18.0.18:8087/",
+            "statusPageUrl": "http://172.18.0.18:8087/actuator/info",
+            "healthCheckUrl": "http://172.18.0.18:8087/actuator/health",
+            "vipAddress": "project-service",
+            "secureVipAddress": "project-service",
+            "isCoordinatingDiscoveryServer": "false",
+            "lastUpdatedTimestamp": "1794996995981",
+            "lastDirtyTimestamp": "1794996995266",
+            "actionType": "ADDED"
+          }
+        ]
+      }
+    ]
+  }
+}

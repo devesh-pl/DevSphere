@@ -1,0 +1,25 @@
+ Container devsphere-orchestrator-worker Stopping
+ Container devsphere-orchestrator-worker Stopped
+time="2026-11-18T15:55:53+05:30" level=warning msg="Found orphan containers ([devsphere-deployment devsphere-deployment-service-spring-1 devsphere-project-service-spring-1 devsphere-eureka-server-1 devsphere-grafana devsphere-blackbox-exporter devsphere-prometheus devsphere-gateway]) for this project. If you removed or renamed this service in your compose file, you can run this command with the --remove-orphans flag to clean it up."
+ Container devsphere-postgres Running
+ Container devsphere-rabbitmq Running
+ Container devsphere-postgres Waiting
+ Container devsphere-rabbitmq Waiting
+ Container devsphere-rabbitmq Healthy
+ Container devsphere-postgres Healthy
+ Container devsphere-orchestrator-worker Starting
+ Container devsphere-orchestrator-worker Started
+
+===== DEVSPHERE WORKER RECOVERY TEST =====
+
+PASS: Test developer authenticated
+PASS: Worker stopped
+PASS: Operation submitted: 03a75de1-9e48-4b9d-b741-174648ae2d4b
+PASS: Outbox published operation
+PASS: Expired worker lease simulated
+PASS: Recovery controller requeued operation
+PASS: Worker restarted
+PASS: Recovered operation completed
+PASS: Attempt count increased from 1 to 2
+
+ALL WORKER RECOVERY CHECKS PASSED

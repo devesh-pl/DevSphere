@@ -1,0 +1,18 @@
+Frontend test audit (only observed test resource IDs)
+
+                  id                  |         name         | management_service | status
+--------------------------------------+----------------------+--------------------+---------
+ 985ae8c6-99d1-42fd-afd5-f69467026e9b | ds-java-985ae8c6-99d | java               | deleted
+ 88542f0e-73f6-4581-ab35-b21ef28d4cb2 | ds-88542f0e-73f      | python             | deleted
+(2 rows)
+
+ remaining_frontend_project_records
+------------------------------------
+                                  0
+(1 row)
+
+                id                |  status   |            label             | attempt_count | archived | credential_cleared
+----------------------------------+-----------+------------------------------+---------------+----------+--------------------
+ 3003f55cd8db4181a0e67d9577fb273f | failed    | University queued CRUD proof |             0 | t        | t
+ 6057a904176d4ec388bca64023b68753 | completed |                              |             1 | t        | t
+(2 rows)
