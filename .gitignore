@@ -79,3 +79,7 @@ secrets/infrastructure/docker/kubeconfig/*.yaml
 
 # Local security review reports
 /output/security-review/
+
+# Java build output
+**/target/
+!.env.spring.example

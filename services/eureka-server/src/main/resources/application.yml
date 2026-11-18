@@ -1,0 +1,18 @@
+server:
+  port: ${PORT:8761}
+spring:
+  application:
+    name: eureka-server
+eureka:
+  client:
+    register-with-eureka: ${EUREKA_REGISTER:false}
+    fetch-registry: ${EUREKA_FETCH:false}
+    service-url:
+      defaultZone: ${EUREKA_PEER_URL:http://localhost:8761/eureka/}
+  server:
+    response-cache-update-interval-ms: 3000
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
