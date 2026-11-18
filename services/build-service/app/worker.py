@@ -86,6 +86,7 @@ def claim_job():
                 SELECT *
                 FROM build_jobs
                 WHERE status='queued'
+                  AND archived_at IS NULL
                   AND attempt_count < max_attempts
                   AND token_ciphertext IS NOT NULL
                 ORDER BY created_at

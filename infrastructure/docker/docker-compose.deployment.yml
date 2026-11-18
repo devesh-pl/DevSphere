@@ -18,7 +18,7 @@ services:
       - "127.0.0.1:8005:8000"
 
     volumes:
-      - ./kubeconfig/devsphere.yaml:/app/kubeconfig/config:ro
+      - ./kubeconfig/deployment-restricted.yaml:/app/kubeconfig/config:ro
 
     mem_limit: 384m
     cpus: 0.5

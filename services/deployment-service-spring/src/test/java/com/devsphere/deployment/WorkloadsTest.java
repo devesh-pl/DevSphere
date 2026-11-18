@@ -10,8 +10,18 @@ import io.fabric8.kubernetes.client.server.mock.EnableKubernetesMockClient;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
-@EnableKubernetesMockClient(crud = true)
+@EnableKubernetesMockClient(
+    crud = true, kubernetesClientBuilderCustomizer = WorkloadsTest.ClientTimeouts.class)
 class WorkloadsTest {
+  // Cold TLS initialization needs a realistic timeout in CPU-limited test containers.
+  public static class ClientTimeouts
+      implements java.util.function.Consumer<io.fabric8.kubernetes.client.KubernetesClientBuilder> {
+    public void accept(io.fabric8.kubernetes.client.KubernetesClientBuilder builder) {
+      builder.editOrNewConfig().withConnectionTimeout(30000).withRequestTimeout(30000).endConfig();
+      builder.withHttpClientFactory(
+          new io.fabric8.kubernetes.client.jetty.JettyHttpClientFactory());
+    }
+  }
   KubernetesClient client;
   Deployment record() {
     var d = new Deployment();

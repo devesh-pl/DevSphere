@@ -13,6 +13,8 @@ import org.springframework.web.client.*;
 @Configuration
 @Import(ApiErrors.class)
 public class AuthConfiguration {
+  private static final org.slf4j.Logger LOG =
+      org.slf4j.LoggerFactory.getLogger(AuthConfiguration.class);
   @Bean
   public RestClient authClient(@Value("${devsphere.auth-url:http://localhost:8001}") String url) {
     var factory = new JdkClientHttpRequestFactory(
@@ -60,6 +62,12 @@ public class AuthConfiguration {
             "Authentication failed");
         return;
       } catch (RestClientException | IllegalArgumentException e) {
+        // Log only failure categories, never credentials or the Auth response body.
+        Throwable cause = e;
+        var categories = new java.util.ArrayList<String>();
+        for (int i = 0; cause != null && i < 4; i++, cause = cause.getCause())
+          categories.add(cause.getClass().getSimpleName());
+        LOG.warn("Authentication dependency failed: {}", String.join(" -> ", categories));
         reject(res, 503, "Authentication service unavailable");
         return;
       }

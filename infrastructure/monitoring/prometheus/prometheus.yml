@@ -52,3 +52,13 @@ scrape_configs:
           - deployment-service:8000
         labels:
           service: deployment
+
+  - job_name: devsphere-spring
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: [eureka-server:8761]
+        labels: {service: eureka}
+      - targets: [project-service-spring:8087]
+        labels: {service: project-spring}
+      - targets: [deployment-service-spring:8088]
+        labels: {service: deployment-spring}

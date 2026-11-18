@@ -116,7 +116,7 @@ def get_owned_record(db, deployment_id, user):
         raise HTTPException(404, "Deployment not found")
 
     record = db.execute(
-        text("SELECT * FROM deployments WHERE id=:id AND owner_id=:owner"),
+        text("SELECT * FROM deployments WHERE id=:id AND owner_id=:owner AND name NOT LIKE 'ds-java-%'"),
         {"id": normalized, "owner": user["id"]},
     ).mappings().first()
 
@@ -358,7 +358,7 @@ def list_deployments(
     records = db.execute(
         text("""
             SELECT * FROM deployments
-            WHERE owner_id=:owner
+            WHERE owner_id=:owner AND name NOT LIKE 'ds-java-%'
             ORDER BY created_at DESC
             LIMIT 100
         """),

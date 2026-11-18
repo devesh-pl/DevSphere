@@ -1,0 +1,18 @@
+# Optional: use in addition to spring overlay. Never enabled by default.
+services:
+  eureka-server:
+    environment:
+      EUREKA_REGISTER: "true"
+      EUREKA_FETCH: "true"
+      EUREKA_PEER_URL: http://eureka-peer:8761/eureka/
+  eureka-peer:
+    image: devsphere/eureka-server:0.2.0
+    profiles: [eureka-peers]
+    ports: ["127.0.0.1:8762:8761"]
+    environment:
+      EUREKA_REGISTER: "true"
+      EUREKA_FETCH: "true"
+      EUREKA_PEER_URL: http://eureka-server:8761/eureka/
+    mem_limit: 384m
+    cpus: 0.5
+    networks: [devsphere-internal]

@@ -1,0 +1,20 @@
+import React from 'react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
+import { afterEach, expect, test, vi } from 'vitest';
+import App from './App.jsx';
+import { request } from './api.js';
+vi.mock('./api.js', async original => ({ ...await original(), request: vi.fn() }));
+afterEach(cleanup);
+test('current 401 returns to login while stale 401 preserves newer session', async () => {
+  request.mockImplementation(async url => url.endsWith('/login') ? { access_token: 'new-session' } : url.endsWith('/me') ? { email: 'demo@example.com' } : []);
+  render(<App />);
+  fireEvent.change(screen.getByLabelText('Email address'), { target: { value: 'demo@example.com' } });
+  fireEvent.change(screen.getByLabelText('Password'), { target: { value: 'Password123!' } });
+  fireEvent.click(screen.getByText('Sign in'));
+  await screen.findByText('Sign out');
+  window.dispatchEvent(new CustomEvent('devsphere:auth-expired', { detail: { token: 'old-session' } }));
+  expect(screen.getByText('Sign out')).toBeTruthy();
+  window.dispatchEvent(new CustomEvent('devsphere:auth-expired', { detail: { token: 'new-session' } }));
+  await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('session expired'));
+  expect(screen.getByText('Sign in')).toBeTruthy();
+});

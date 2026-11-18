@@ -81,6 +81,7 @@ def reconcile_once():
                 SELECT id, name, namespace, image, replicas, status
                 FROM deployments
                 WHERE status IN ('deploying', 'running')
+                  AND name NOT LIKE 'ds-java-%'
                 ORDER BY created_at
             """)
         ).mappings().all()

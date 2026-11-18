@@ -1,0 +1,14 @@
+# Optional build-after-verify overlay: reuse locally verified JARs and Java 21 runtime.
+services:
+  eureka-server:
+    build:
+      context: ../../services/eureka-server
+      dockerfile: Dockerfile.runtime
+  project-service-spring:
+    build:
+      context: ../../services/project-service-spring
+      dockerfile: Dockerfile.runtime
+  deployment-service-spring:
+    build:
+      context: ../../services/deployment-service-spring
+      dockerfile: Dockerfile.runtime

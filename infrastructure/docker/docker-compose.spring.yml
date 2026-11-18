@@ -1,0 +1,59 @@
+# Add to the existing base + dev Compose files. Explicit service targets avoid restarting Python.
+services:
+  eureka-server:
+    image: devsphere/eureka-server:0.2.0
+    build:
+      context: ../..
+      dockerfile: services/eureka-server/Dockerfile
+    ports: ["127.0.0.1:8761:8761"]
+    mem_limit: 384m
+    cpus: 0.5
+    networks: [devsphere-internal]
+    restart: unless-stopped
+  project-service-spring:
+    image: devsphere/project-service-spring:0.2.0
+    build:
+      context: ../..
+      dockerfile: services/project-service-spring/Dockerfile
+    environment:
+      DATABASE_JDBC_URL: jdbc:postgresql://postgres:5432/project_db
+      DATABASE_USER: project_service
+      DATABASE_PASSWORD: ${PROJECT_DB_PASSWORD:?Run prepare-spring-databases.py}
+      AUTH_SERVICE_URL: http://auth-service:8000
+      ORCHESTRATOR_URL: http://orchestrator-service:8000
+      EUREKA_URL: http://eureka-server:8761/eureka/
+    ports: ["127.0.0.1:8087:8087"]
+    mem_limit: 448m
+    cpus: 1.0
+    networks: [devsphere-internal]
+    restart: unless-stopped
+    depends_on:
+      eureka-server: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+      auth-service: {condition: service_healthy}
+  deployment-service-spring:
+    # Match the host credential owner; retain mode 0600 on the restricted file.
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    image: devsphere/deployment-service-spring:0.2.0
+    build:
+      context: ../..
+      dockerfile: services/deployment-service-spring/Dockerfile
+    environment:
+      DATABASE_JDBC_URL: jdbc:postgresql://postgres:5432/deployment_db
+      DATABASE_USER: deployment_service
+      DATABASE_PASSWORD: ${DEPLOYMENT_DB_PASSWORD:?Required}
+      AUTH_SERVICE_URL: http://auth-service:8000
+      EUREKA_URL: http://eureka-server:8761/eureka/
+      KUBECONFIG: /app/kubeconfig/config
+      DEPLOYMENT_WRITES: ${JAVA_DEPLOYMENT_WRITES:-false}
+    ports: ["127.0.0.1:8088:8088"]
+    volumes:
+      - ./kubeconfig/deployment-restricted.yaml:/app/kubeconfig/config:ro
+    mem_limit: 512m
+    cpus: 1.0
+    networks: [devsphere-internal]
+    restart: unless-stopped
+    depends_on:
+      eureka-server: {condition: service_healthy}
+      postgres: {condition: service_healthy}
+      auth-service: {condition: service_healthy}

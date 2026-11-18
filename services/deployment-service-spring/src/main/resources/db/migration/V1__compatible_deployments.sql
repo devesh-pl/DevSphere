@@ -26,8 +26,8 @@ CREATE TABLE IF NOT EXISTS public.deployment_revisions (
     UNIQUE (deployment_id, revision_number)
 );
 
-CREATE INDEX IF NOT EXISTS ix_deployment_revisions_lookup
-ON public.deployment_revisions(deployment_id, revision_number DESC);
+-- The existing UNIQUE(deployment_id, revision_number) already indexes revision lookup.
+-- Do not issue CREATE INDEX against a legacy table owned by another role.
 
 ALTER TABLE public.deployments ADD COLUMN IF NOT EXISTS management_service VARCHAR(20) NOT NULL DEFAULT 'python';
 ALTER TABLE public.deployments ADD COLUMN IF NOT EXISTS project_id UUID;

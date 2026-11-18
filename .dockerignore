@@ -22,3 +22,8 @@ logs
 
 tests
 docs
+# Clean Java 21 multi-stage builds; runtime overlays use service-local contexts.
+**/target
+
+# Never send local Kubernetes credentials to image builds.
+infrastructure/docker/kubeconfig

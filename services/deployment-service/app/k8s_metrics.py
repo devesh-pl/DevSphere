@@ -50,13 +50,13 @@ class DevSphereKubernetesCollector:
         try:
             deployments = apps_api.list_namespaced_deployment(
                 namespace=NAMESPACE,
-                label_selector="app.kubernetes.io/managed-by=devsphere",
+                label_selector="app.kubernetes.io/managed-by in (devsphere,devsphere-java)",
                 _request_timeout=8,
             ).items
 
             pods = core_api.list_namespaced_pod(
                 namespace=NAMESPACE,
-                label_selector="app.kubernetes.io/managed-by=devsphere",
+                label_selector="app.kubernetes.io/managed-by in (devsphere,devsphere-java)",
                 _request_timeout=8,
             ).items
 

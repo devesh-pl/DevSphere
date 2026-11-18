@@ -29,9 +29,9 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(bind=engine, expire_on_commit=False)
 
-AUTH = "http://127.0.0.1:8001"
-ORCH = "http://127.0.0.1:8004"
-DEPLOY = "http://127.0.0.1:8005"
+AUTH = os.getenv("AUTH_SERVICE_URL", "http://127.0.0.1:8001")
+ORCH = os.getenv("ORCHESTRATOR_URL", "http://127.0.0.1:8004")
+DEPLOY = os.getenv("DEPLOYMENT_URL", "http://127.0.0.1:8005")
 
 runner_path = ROOT / "scripts/build-and-deploy.py"
 spec = importlib.util.spec_from_file_location(
@@ -63,6 +63,7 @@ def row_to_dict(row):
         "updated_at",
         "lease_expires_at",
         "last_heartbeat_at",
+        "archived_at",
     ):
         if item.get(field):
             item[field] = item[field].isoformat()

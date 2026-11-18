@@ -5,7 +5,7 @@ import re
 from uuid import UUID, uuid4
 
 from fastapi import FastAPI, Header, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
@@ -21,6 +21,11 @@ from app.common import (
 
 
 app = FastAPI(title="DevSphere Build Service", version="0.3.0")
+
+
+class BuildMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    label: str = Field(default="", max_length=120)
 
 
 class BuildCreate(BaseModel):
@@ -86,6 +91,7 @@ def ready():
     return {"status": "ready", "storage": "postgresql"}
 
 
+# CREATE: Submit an owned completed provisioning operation to the durable queue.
 @app.post("/builds", status_code=202)
 def create_build(
     payload: BuildCreate,
@@ -179,6 +185,7 @@ def create_build(
     return get_job(job_id)
 
 
+# READ: List the developer's visible builds, retaining archived rows in PostgreSQL.
 @app.get("/builds")
 def list_builds(
     authorization: str | None = Header(default=None),
@@ -189,7 +196,7 @@ def list_builds(
         rows = db.execute(
             text("""
                 SELECT * FROM build_jobs
-                WHERE owner_id=:owner
+                WHERE owner_id=:owner AND archived_at IS NULL
                 ORDER BY created_at DESC
                 LIMIT 100
             """),
@@ -199,6 +206,7 @@ def list_builds(
     return [row_to_dict(row) for row in rows]
 
 
+# READ: Inspect one owned build and its lifecycle state.
 @app.get("/builds/{job_id}")
 def get_build(
     job_id: str,
@@ -228,6 +236,7 @@ def retry_build(
                 WHERE id=:id
                   AND owner_id=:owner
                   AND status='failed'
+                  AND archived_at IS NULL
                   AND attempt_count < max_attempts
                 RETURNING id
             """),
@@ -247,3 +256,49 @@ def retry_build(
         )
 
     return get_job(job_id)
+
+
+# UPDATE: Edit display metadata only while the owned job is still queued.
+@app.put("/builds/{job_id}")
+def update_build(job_id: str, payload: BuildMetadata,
+                 authorization: str | None = Header(default=None)):
+    _, user = authenticate(authorization)
+    with SessionLocal.begin() as db:
+        row = db.execute(text("""
+            UPDATE build_jobs SET label=:label, updated_at=NOW()
+            WHERE id=:id AND owner_id=:owner
+              AND status='queued' AND archived_at IS NULL
+            RETURNING *
+        """), {"id": job_id, "owner": user["id"],
+                 "label": payload.label.strip()}).mappings().first()
+        if row:
+            return row_to_dict(row)
+    owned_job(job_id, user["id"])
+    raise HTTPException(409, "Only visible queued build metadata can be edited")
+
+
+# DELETE: Atomically cancel a queued job or archive a terminal job; keep audit history.
+@app.delete("/builds/{job_id}")
+def delete_build(job_id: str,
+                 authorization: str | None = Header(default=None)):
+    _, user = authenticate(authorization)
+    with SessionLocal.begin() as db:
+        row = db.execute(text("""
+            UPDATE build_jobs
+            SET archived_at=NOW(),
+                error_message=CASE WHEN status='queued'
+                    THEN 'Cancelled by developer before worker claim'
+                    ELSE error_message END,
+                status=CASE WHEN status='queued' THEN 'failed' ELSE status END,
+                token_ciphertext=NULL, updated_at=NOW()
+            WHERE id=:id AND owner_id=:owner
+              AND status IN ('queued','completed','failed')
+              AND archived_at IS NULL
+            RETURNING *
+        """), {"id": job_id, "owner": user["id"]}).mappings().first()
+        if row:
+            return row_to_dict(row)
+    job = owned_job(job_id, user["id"])
+    if job.get("archived_at"):
+        return job
+    raise HTTPException(409, "Active builds cannot be cancelled or archived")

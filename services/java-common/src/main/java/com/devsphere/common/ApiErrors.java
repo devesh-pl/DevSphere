@@ -12,7 +12,9 @@ public class ApiErrors {
     return ResponseEntity.status(e.status).body(Map.of("detail", e.getMessage()));
   }
   @ExceptionHandler(
-      {MethodArgumentNotValidException.class, MethodArgumentTypeMismatchException.class,
+      {MethodArgumentNotValidException.class, jakarta.validation.ConstraintViolationException.class,
+          org.springframework.web.method.annotation.HandlerMethodValidationException.class,
+          MethodArgumentTypeMismatchException.class,
           org.springframework.http.converter.HttpMessageNotReadableException.class})
   public ResponseEntity<?> invalid(Exception e) {
     return ResponseEntity.badRequest().body(Map.of("detail", "Invalid request fields"));

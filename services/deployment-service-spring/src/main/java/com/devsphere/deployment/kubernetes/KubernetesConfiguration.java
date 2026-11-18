@@ -14,6 +14,9 @@ public class KubernetesConfiguration {
     config.setNamespace("devsphere-apps");
     config.setConnectionTimeout(3000);
     config.setRequestTimeout(8000);
-    return new KubernetesClientBuilder().withConfig(config).build();
+    return new KubernetesClientBuilder()
+        .withConfig(config)
+        .withHttpClientFactory(new io.fabric8.kubernetes.client.jetty.JettyHttpClientFactory())
+        .build();
   }
 }

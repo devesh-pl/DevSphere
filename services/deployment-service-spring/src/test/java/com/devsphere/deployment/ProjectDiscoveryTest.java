@@ -62,6 +62,18 @@ class ProjectDiscoveryTest {
   static void stop() {
     SERVER.stop(0);
   }
+  @Autowired org.springframework.web.client.RestClient.Builder infrastructureBuilder;
+  @Test
+  void infrastructureBootstrapUsesPlainDnsWithoutRegistry() {
+    var result =
+        infrastructureBuilder.build()
+            .get()
+            .uri("http://127.0.0.1:" + SERVER.getAddress().getPort() + "/projects/" + PROJECT)
+            .header("Authorization", "Bearer owner")
+            .retrieve()
+            .body(Map.class);
+    assertEquals(PROJECT.toString(), result.get("id"));
+  }
   @Test
   void loadBalancerResolvesLogicalServiceAndForwardsAuthentication() {
     assertEquals(PROJECT.toString(),

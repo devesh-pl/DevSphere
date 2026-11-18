@@ -4,57 +4,9 @@ import {
   LogOut, RefreshCw, Rocket, ShieldCheck
 } from 'lucide-react';
 
-const API = {
-  auth: '/api/auth',
-  operations: '/api/orchestrator',
-  builds: '/api/build',
-  deployments: '/api/deployment'
-};
-
-async function request(url, token, options = {}) {
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers || {})
-    }
-  });
-
-  const raw = await response.text();
-  let data;
-
-  try {
-    data = raw ? JSON.parse(raw) : {};
-  } catch {
-    data = { detail: raw || 'Invalid server response' };
-  }
-
-  if (!response.ok) {
-    if (response.status === 401 && token) {
-      window.dispatchEvent(
-        new CustomEvent('devsphere:auth-expired', {
-          detail: { token }
-        })
-      );
-    }
-
-    const detail = data.detail;
-    const message = typeof detail === 'string'
-      ? detail
-      : Array.isArray(detail)
-        ? detail.map(error =>
-            `${(error.loc || []).join('.')}: ${error.msg}`
-          ).join('; ')
-        : JSON.stringify(detail || data);
-
-    throw new Error(
-      `HTTP ${response.status}: ${message}`
-    );
-  }
-
-  return data;
-}
+import { API, request } from './api.js';
+import { useDecisionDialog } from './useDecisionDialog.jsx';
+import { ProjectManager, DeploymentCreator, BuildActions } from './CrudPanels.jsx';
 
 function Status({ value }) {
   return (
@@ -188,6 +140,7 @@ function AuthScreen({ onAuthenticated, sessionMessage }) {
   );
 }
 
+// CREATE: Preserve real application provisioning through the existing Orchestrator.
 function ProjectCreator({ token, onCreated }) {
   const [slug, setSlug] = useState('');
   const [busy, setBusy] = useState(false);
@@ -396,6 +349,7 @@ function Builds({ builds, token, onRefresh }) {
                       : '—'}
                   </td>
                   <td>
+                    <BuildActions build={build} token={token} onRefresh={onRefresh} />
                     {build.status === 'failed' &&
                      (build.attempt_count ?? 0) <
                      (build.max_attempts ?? 3) ? (
@@ -421,7 +375,8 @@ function Builds({ builds, token, onRefresh }) {
   );
 }
 
-function Deployments({ token, deployments, onRefresh }) {
+function Deployments({ token, deployments, onRefresh, apiBase = API.deployments }) {
+  const { confirm, prompt, dialog } = useDecisionDialog();
   const [revisions, setRevisions] = useState({});
   const [busy, setBusy] = useState(null);
   const [error, setError] = useState('');
@@ -440,7 +395,7 @@ function Deployments({ token, deployments, onRefresh }) {
       const results = await Promise.allSettled(
         active.map(deployment =>
           request(
-            `${API.deployments}/deployments/${deployment.id}`,
+            `${apiBase}/deployments/${deployment.id}`,
             token
           )
         )
@@ -484,11 +439,11 @@ function Deployments({ token, deployments, onRefresh }) {
     try {
       const [logs, pods] = await Promise.all([
         request(
-          `${API.deployments}/deployments/${deployment.id}/logs`,
+          `${apiBase}/deployments/${deployment.id}/logs`,
           token
         ),
         request(
-          `${API.deployments}/deployments/${deployment.id}/pods`,
+          `${apiBase}/deployments/${deployment.id}/pods`,
           token
         )
       ]);
@@ -502,13 +457,14 @@ function Deployments({ token, deployments, onRefresh }) {
     }
   }
 
+  // UPDATE: Scale a real owned Kubernetes workload.
   async function scale(deployment, replicas) {
     setBusy(deployment.id);
     setError('');
 
     try {
       await request(
-        `${API.deployments}/deployments/${deployment.id}`,
+        `${apiBase}/deployments/${deployment.id}`,
         token,
         {
           method: 'PATCH',
@@ -524,12 +480,13 @@ function Deployments({ token, deployments, onRefresh }) {
     }
   }
 
+  // READ: Load persisted deployment revision history.
   async function history(deployment) {
     setError('');
 
     try {
       const items = await request(
-        `${API.deployments}/deployments/${deployment.id}/revisions`,
+        `${apiBase}/deployments/${deployment.id}/revisions`,
         token
       );
 
@@ -548,7 +505,7 @@ function Deployments({ token, deployments, onRefresh }) {
 
     try {
       await request(
-        `${API.deployments}/deployments/${deployment.id}/rollback`,
+        `${apiBase}/deployments/${deployment.id}/rollback`,
         token,
         {
           method: 'POST',
@@ -565,11 +522,27 @@ function Deployments({ token, deployments, onRefresh }) {
     }
   }
 
+  // DELETE: Confirm cleanup of this owned deployment and its Kubernetes resources.
+  async function remove(deployment) {
+    if (!await confirm(`Delete deployment ${deployment.name}?`)) return;
+    setBusy(deployment.id); setError('');
+    try { await request(`${apiBase}/deployments/${deployment.id}`, token, { method: 'DELETE' }); await onRefresh(); }
+    catch (err) { setError(err.message); } finally { setBusy(null); }
+  }
+  // UPDATE: Apply an allowlisted image while retaining the existing replica count.
+  async function editImage(deployment) {
+    const image = await prompt('Container image', deployment.image);
+    if (!image || image === deployment.image) return;
+    setBusy(deployment.id); setError('');
+    try { await request(`${apiBase}/deployments/${deployment.id}`, token, { method: apiBase === API.deployments ? 'PATCH' : 'PUT', body: JSON.stringify({ image }) }); await onRefresh(); }
+    catch (err) { setError(err.message); } finally { setBusy(null); }
+  }
   return (
     <section className="panel">
       <div className="panel-heading">
         <Cloud size={20} />
         <h3>Kubernetes deployments</h3>
+        {dialog}
       </div>
 
       {error && <div className="error">{error}</div>}
@@ -604,6 +577,8 @@ function Deployments({ token, deployments, onRefresh }) {
               </div>
 
               <div className="actions">
+                <button className="small-button" disabled={busy === deployment.id} onClick={() => editImage(deployment)}>Edit image</button>
+                <button className="small-button" disabled={busy === deployment.id} onClick={() => remove(deployment)}>Delete deployment</button>
                 <button
                   className="small-button"
                   disabled={busy === deployment.id}
@@ -700,6 +675,8 @@ export default function App() {
   const [operations, setOperations] = useState([]);
   const [builds, setBuilds] = useState([]);
   const [deployments, setDeployments] = useState([]);
+  const [springDeployments, setSpringDeployments] = useState([]);
+  const [springError, setSpringError] = useState('');
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -717,6 +694,7 @@ export default function App() {
       setOperations([]);
       setBuilds([]);
       setDeployments([]);
+      setSpringDeployments([]);
       setSection('overview');
       setSessionMessage(
         'Your session expired. Please sign in again.'
@@ -744,12 +722,13 @@ export default function App() {
         request(`${API.deployments}/deployments`, token)
       ]);
 
+      if (currentToken.current !== token) return;
       setOperations(Array.isArray(ops) ? ops : ops.items || []);
       setBuilds(Array.isArray(jobs) ? jobs : jobs.items || []);
       setDeployments(Array.isArray(apps) ? apps : apps.items || []);
       setError('');
     } catch (err) {
-      setError(err.message);
+      if (currentToken.current === token) setError(err.message);
     }
   }, [token]);
 
@@ -761,6 +740,22 @@ export default function App() {
     return () => clearInterval(timer);
   }, [token, refresh]);
 
+  const refreshSpring = useCallback(async () => {
+    if (!token) return;
+    try {
+      // READ: Inspect Java-owned deployments through the explicit preview gateway route.
+      const items = await request(`${API.springDeployments}/deployments`, token);
+      if (currentToken.current !== token) return;
+      setSpringDeployments(items); setSpringError('');
+    } catch (err) { if (currentToken.current === token) setSpringError(err.message); }
+  }, [token]);
+  useEffect(() => {
+    if (section !== 'spring-deployments' || !token) return;
+    refreshSpring(); const timer = setInterval(refreshSpring, 5000);
+    return () => clearInterval(timer);
+  }, [section, token, refreshSpring]);
+
+  // CREATE: Submit a build for a completed provisioning operation.
   async function buildProject(operation) {
     try {
       await request(`${API.builds}/builds`, token, {
@@ -794,7 +789,8 @@ export default function App() {
     { id: 'overview', label: 'Overview', icon: Activity },
     { id: 'projects', label: 'Projects', icon: FolderPlus },
     { id: 'builds', label: 'Builds', icon: Hammer },
-    { id: 'deployments', label: 'Deployments', icon: Cloud }
+    { id: 'deployments', label: 'Deployments', icon: Cloud },
+    { id: 'spring-deployments', label: 'Java deployments', icon: Cloud }
   ];
 
   return (
@@ -837,6 +833,7 @@ export default function App() {
             setOperations([]);
             setBuilds([]);
             setDeployments([]);
+            setSpringDeployments([]);
             setSection('overview');
           }}>
             <LogOut size={17} /> Sign out
@@ -888,6 +885,7 @@ export default function App() {
 
         {section === 'projects' && (
           <>
+            <ProjectManager key={token} token={token} operations={operations} onProvisioned={refresh} />
             <ProjectCreator token={token} onCreated={refresh} />
             <Operations
               token={token}
@@ -898,6 +896,15 @@ export default function App() {
         )}
 
         {section === 'builds' && <Builds builds={builds} token={token} onRefresh={refresh} />}
+
+        {section === 'spring-deployments' && (
+          <>
+            <p className="message">Java preview manages separate workloads. Build-worker deployments remain in Deployments.</p>
+            {springError && <div role="alert" className="error">{springError}</div>}
+            <DeploymentCreator token={token} onCreated={refreshSpring} />
+            <Deployments key={`spring-${token}`} token={token} deployments={springDeployments.filter(d => d.status !== 'deleted')} onRefresh={refreshSpring} apiBase={API.springDeployments} />
+          </>
+        )}
 
         {section === 'deployments' && (
           <Deployments
