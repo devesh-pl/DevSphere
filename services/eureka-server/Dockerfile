@@ -4,7 +4,7 @@ WORKDIR /workspace
 COPY pom.xml .
 COPY services/java-common services/java-common
 COPY services/eureka-server services/eureka-server
-COPY services/eureka-server services/eureka-server
+COPY services/project-service-spring services/project-service-spring
 COPY services/deployment-service-spring services/deployment-service-spring
 RUN --mount=type=cache,id=devsphere-maven,target=/root/.m2,sharing=locked mvn -B -pl services/eureka-server -am package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
